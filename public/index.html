@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Web Browsing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #controls {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        #urlInput {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 5px;
+        }
+        #loadButton {
+            padding: 5px 10px;
+        }
+        #browserFrame {
+            flex-grow: 1;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="urlInput" placeholder="Enter URL">
+        <button id="loadButton">Load</button>
+    </div>
+    <iframe id="browserFrame" src="about:blank"></iframe>
+
+    <script>
+        const socket = io();
+        const urlInput = document.getElementById('urlInput');
+        const loadButton = document.getElementById('loadButton');
+        const browserFrame = document.getElementById('browserFrame');
+
+        function loadUrl(url) {
+            const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+            browserFrame.src = proxyUrl;
+            urlInput.value = url;
+        }
+
+        loadButton.addEventListener('click', () => {
+            const url = urlInput.value;
+            if (url) {
+                loadUrl(url);
+                socket.emit('urlChange', url);
+            }
+        });
+
+        socket.on('urlChange', (url) => {
+            loadUrl(url);
+        });
+
+        browserFrame.addEventListener('load', () => {
+            browserFrame.contentWindow.addEventListener('click', (event) => {
+                if (event.target.tagName === 'A') {
+                    event.preventDefault();
+                    const url = event.target.href;
+                    loadUrl(url);
+                    socket.emit('urlChange', url);
+                }
+            }, true);
+        });
+    </script>
+</body>
+</html>
